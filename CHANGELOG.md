@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Dictionaries with .json files are no longer showed in dictionary list.
+
+### Added
+
+-   Publish labels
+
 ## [1.0.6] - 2023-09-12
 
 ### Changed

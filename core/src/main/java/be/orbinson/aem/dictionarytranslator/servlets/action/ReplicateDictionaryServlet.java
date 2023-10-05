@@ -1,5 +1,8 @@
 package be.orbinson.aem.dictionarytranslator.servlets.action;
 
+import com.day.cq.replication.ReplicationActionType;
+import com.day.cq.replication.ReplicationException;
+import com.day.cq.replication.Replicator;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -17,6 +20,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.Session;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -34,6 +38,9 @@ public class ReplicateDictionaryServlet extends SlingAllMethodsServlet {
     @Reference
     private transient Distributor distributor;
 
+    @Reference
+    private transient Replicator replicator;
+
     @Override
     protected void doPost(SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws IOException {
         String path = request.getParameter("path");
@@ -46,8 +53,14 @@ public class ReplicateDictionaryServlet extends SlingAllMethodsServlet {
             Resource resource = resourceResolver.getResource(path);
 
             if (resource != null) {
-                DistributionRequest distributionRequest = new SimpleDistributionRequest(DistributionRequestType.ADD, true, path);
-                distributor.distribute("publish", resourceResolver, distributionRequest);
+//                DistributionRequest distributionRequest = new SimpleDistributionRequest(DistributionRequestType.ADD, true, path);
+//                distributor.distribute("publish", resourceResolver, distributionRequest);
+                try {
+                    LOG.info("THe wonderfull path here is: "+path);
+                    replicator.replicate(resourceResolver.adaptTo(Session.class), ReplicationActionType.ACTIVATE, path);
+                } catch (ReplicationException e) {
+                    throw new RuntimeException(e);
+                }
 
                 if (LOG.isDebugEnabled()) {
                     // javasecurity:S5145

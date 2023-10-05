@@ -66,6 +66,7 @@ Import-Package: javax.annotation;version=0.0.0,*
         </dependency>
 
         <!-- Testing -->
+
         <dependency>
             <groupId>com.adobe.cq</groupId>
             <artifactId>core.wcm.components.core</artifactId>

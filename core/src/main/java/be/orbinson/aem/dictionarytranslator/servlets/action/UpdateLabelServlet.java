@@ -45,6 +45,7 @@ public class UpdateLabelServlet extends SlingAllMethodsServlet {
             Resource resource = resourceResolver.getResource(label);
             try {
                 if (resource != null) {
+                    LOG.debug("Update label on path '{}'", label);
                     updateLabel(request, resourceResolver, resource);
                 } else {
                     LOG.warn("Unable to get label '{}'", label);
