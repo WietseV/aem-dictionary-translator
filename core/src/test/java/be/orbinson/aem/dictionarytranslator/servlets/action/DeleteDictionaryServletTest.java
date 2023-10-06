@@ -83,6 +83,6 @@ class DeleteDictionaryServletTest {
         servlet.service(context.request(), context.response());
 
         assertNotNull(context.resourceResolver().getResource("/content/dictionaries/site-a/i18n"));
-        assertEquals(HttpServletResponse.SC_OK, context.response().getStatus());
+        assertEquals(HttpServletResponse.SC_BAD_REQUEST, context.response().getStatus());
     }
 }

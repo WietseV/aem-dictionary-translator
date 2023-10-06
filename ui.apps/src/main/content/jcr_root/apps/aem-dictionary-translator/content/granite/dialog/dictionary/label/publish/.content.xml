@@ -33,9 +33,9 @@
                                     <items jcr:primaryType="nt:unstructured">
                                         <message
                                                 jcr:primaryType="nt:unstructured"
-                                                jcr:title="Are you sure you want to delete the selected labels?"
+                                                jcr:title="Are you sure you want to publish the selected labels?"
                                                 sling:resourceType="granite/ui/components/coral/foundation/alert"
-                                                variant="error"/>
+                                                variant="info"/>
                                     </items>
                                 </form>
                             </items>
