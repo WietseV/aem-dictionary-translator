@@ -67,27 +67,32 @@ class UpdateLabelServletTest {
     }
 
     @Test
-    @Disabled
     void doPostWithValidParams() throws ServletException, IOException {
-        context.create().resource("/content/dictionaries/i18n/en/appel");
-        context.create().resource("/content/dictionaries/i18n/fr/appel");
+        context.create().resource("/content/dictionaries/i18n/en", Map.of("jcr:language", "en"));
+        context.create().resource("/content/dictionaries/i18n/en/appel", Map.of("dictionary", "/content/dictionaries/i18n", "key", "appel",
+                "en", "apple", "sling:MessageEntry","jcr:primaryType"));
+        context.create().resource("/content/dictionaries/i18n/fr", Map.of("jcr:language", "fr"));
+        context.create().resource("/content/dictionaries/i18n/en/appel", Map.of("dictionary", "/content/dictionaries/i18n", "key", "appel",
+
+                "fr", "pomme", "sling:MessageEntry","jcr:primaryType"));
 
         context.request().setMethod("POST");
         context.request().setParameterMap(Map.of(
-                "label", "/content/dictionaries/i18n/appel",
-                "en", "apple",
-                "fr", "pomme"
+                "dictionary", "/content/dictionaries/i18n",
+                "key", "appel",
+                "en", "Hello",
+                "fr", "Bonjour"
         ));
 
         servlet.service(context.request(), context.response());
 
         assertEquals(HttpServletResponse.SC_OK, context.response().getStatus());
 
-        Resource resource = context.resourceResolver().getResource("/content/dictionaries/i18n/en/greeting");
+        Resource resource = context.resourceResolver().getResource("/content/dictionaries/i18n/en/appel");
         ValueMap properties = resource.getValueMap();
         assertNotNull(resource);
         assertEquals("sling:MessageEntry", properties.get("jcr:primaryType"));
         assertEquals("appel", properties.get("sling:key"));
-        assertEquals("apple", properties.get("sling:message"));
+        assertEquals("Hello", properties.get("sling:message"));
     }
 }

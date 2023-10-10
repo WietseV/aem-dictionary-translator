@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
 import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
@@ -20,6 +21,7 @@ import javax.jcr.Session;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Iterator;
 
 @Component(service = Servlet.class)
 @SlingServletResourceTypes(
@@ -40,7 +42,8 @@ public class ReplicateLabelServlet extends SlingAllMethodsServlet {
         if (StringUtils.isEmpty(labels)) {
             LOG.warn("Labels parameters are required");
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-        } else {for (String label : labels.split(",")) {
+        } else {
+            for (String label : labels.split(",")) {
                 LOG.info("label: " + label);
 
                 //Splitting label into dictionary path and label key
@@ -53,23 +56,30 @@ public class ReplicateLabelServlet extends SlingAllMethodsServlet {
                     label = label.substring(lastIndexOfBackslash + 1);
                     LOG.info("Label: " + label);
                 }
-                ResourceResolver resourceResolver = request.getResourceResolver();
-                String query = "/jcr:root" +parentPath+"//element(*, mix:language)/"+ label;
+                ResourceResolver resourceResolver = getResourceResolver(request);
+                String query = "/jcr:root" + parentPath + "//element(*, mix:language)/" + label;
                 LOG.info(query);
-                resourceResolver.findResources(query, "xpath")
-                        .forEachRemaining(
-                            resource -> {
-                                try {
-                                    replicator.replicate(resourceResolver.adaptTo(Session.class), ReplicationActionType.ACTIVATE, resource.getPath());
-                                    LOG.debug("Published label on path '{}'", resource.getPath());
-                                } catch (ReplicationException e) {
-                                    throw new RuntimeException(e);
-                                }
+                Iterator<Resource> a = resourceResolver.findResources(query, "xpath");
+                a.forEachRemaining(
+                        resource -> {
+                            try {
+                                replicator.replicate(resourceResolver.adaptTo(Session.class), ReplicationActionType.ACTIVATE, resource.getPath());
+                                LOG.debug("Published label on path '{}'", resource.getPath());
+                            } catch (ReplicationException e) {
+                                throw new RuntimeException(e);
                             }
-                        );
+                        }
+                );
                 LOG.warn("Unable to get label '{}'", labels);
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-                }
+            }
         }
     }
+
+    // Wrapper method to mock resourceResolver
+    @NotNull
+    ResourceResolver getResourceResolver(SlingHttpServletRequest request) {
+        return request.getResourceResolver();
+    }
+
 }
