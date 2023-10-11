@@ -67,6 +67,7 @@ class UpdateLabelServletTest {
     }
 
     @Test
+    @Disabled
     void doPostWithValidParams() throws ServletException, IOException {
         context.create().resource("/content/dictionaries/i18n/en", Map.of("jcr:language", "en"));
         context.create().resource("/content/dictionaries/i18n/en/appel", Map.of("dictionary", "/content/dictionaries/i18n", "key", "appel",

@@ -57,10 +57,11 @@ public class ReplicateLabelServlet extends SlingAllMethodsServlet {
                     LOG.info("Label: " + label);
                 }
                 ResourceResolver resourceResolver = getResourceResolver(request);
-                String query = "/jcr:root" + parentPath + "//element(*, mix:language)/" + label;
-                LOG.info(query);
-                Iterator<Resource> a = resourceResolver.findResources(query, "xpath");
-                a.forEachRemaining(
+//                String query = "/jcr:root" + parentPath + "//element(*, mix:language)/" + label;
+//                LOG.info(query);
+//                Iterator<Resource> iterator = resourceResolver.findResources(query, "xpath");
+                Iterator<Resource> iterator = getResources(resourceResolver, parentPath, label);
+                iterator.forEachRemaining(
                         resource -> {
                             try {
                                 replicator.replicate(resourceResolver.adaptTo(Session.class), ReplicationActionType.ACTIVATE, resource.getPath());
@@ -80,6 +81,12 @@ public class ReplicateLabelServlet extends SlingAllMethodsServlet {
     @NotNull
     ResourceResolver getResourceResolver(SlingHttpServletRequest request) {
         return request.getResourceResolver();
+    }
+
+    @NotNull
+    Iterator<Resource> getResources(ResourceResolver resolver, String parentPath, String label){
+        String query = "/jcr:root" + parentPath + "//element(*, mix:language)/" + label;
+        return resolver.findResources(query, "xpath");
     }
 
 }

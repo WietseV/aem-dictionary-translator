@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.servlet.ServletException;
@@ -51,12 +52,17 @@ class ReplicateLabelServletTest {
     @Mock
     Replicator replicator;
 
+    @Mock
+    ResourceResolver resourceResolver;
+
+
 
     @BeforeEach
     void beforeEach() {
         translationConfig = context.registerService(TranslationConfig.class, translationConfig);
         dictionaryService = context.registerInjectActivateService(new DictionaryServiceImpl());
         replicator = context.registerService(Replicator.class, replicator);
+        resourceResolver = context.registerService(ResourceResolver.class, resourceResolver);
         servlet = context.registerInjectActivateService(new ReplicateLabelServlet());
         create = context.registerInjectActivateService(new CreateLabelServlet());
     }
@@ -99,14 +105,11 @@ class ReplicateLabelServletTest {
         resources.add(test);
         Iterator<Resource> iterator = resources.iterator();
 
-        //get context resource resolver
-        ResourceResolver resolver = Mockito.spy(context.resourceResolver());
-
         SlingHttpServletRequest request = Mockito.spy(context.request());
+        when(servlet.getResourceResolver(request)).thenReturn(resourceResolver);
 
-        when(servlet.getResourceResolver(request)).thenReturn(resolver);
-
-        when(resolver.findResources(anyString(),anyString())).thenReturn(iterator);
+//        when(resourceResolver.findResources(anyString(),anyString())).thenReturn(iterator);
+        when(servlet.getResources(resourceResolver, anyString(), anyString())).thenReturn(iterator);
 
         servlet.service(context.request(), context.response());
 
