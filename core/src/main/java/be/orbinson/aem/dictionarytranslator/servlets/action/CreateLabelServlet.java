@@ -1,7 +1,7 @@
 package be.orbinson.aem.dictionarytranslator.servlets.action;
 
-import be.orbinson.aem.dictionarytranslator.services.DictionaryService;
 import com.day.cq.commons.jcr.JcrUtil;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -16,10 +16,13 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.Servlet;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
+
+import javax.servlet.Servlet;
+import javax.servlet.http.HttpServletResponse;
+
+import be.orbinson.aem.dictionarytranslator.services.DictionaryService;
 
 @Component(service = Servlet.class)
 @SlingServletResourceTypes(
@@ -48,7 +51,7 @@ public class CreateLabelServlet extends SlingAllMethodsServlet {
             try {
                 if (resource != null) {
                     for (String language : dictionaryService.getLanguages(resource)) {
-                        LOG.debug("Create label on path '{}'", dictionary+"/"+key);
+                        LOG.debug("Create label on path '{}'", dictionary + "/" + key);
                         String message = request.getParameter(language);
                         addMessage(resourceResolver, resource, language, key, message);
                     }

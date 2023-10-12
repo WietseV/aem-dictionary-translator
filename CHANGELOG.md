@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   Publish labels
+- Seperate of multiple labels can now be published. [#5](https://github.com/orbinson/aem-dictionary-translator/pull/5)
 
 ## [1.0.6] - 2023-09-12
 

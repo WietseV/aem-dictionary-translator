@@ -3,16 +3,14 @@ package be.orbinson.aem.dictionarytranslator.servlets.action;
 import com.day.cq.replication.ReplicationActionType;
 import com.day.cq.replication.ReplicationException;
 import com.day.cq.replication.Replicator;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
-import org.apache.sling.distribution.DistributionRequest;
-import org.apache.sling.distribution.DistributionRequestType;
 import org.apache.sling.distribution.Distributor;
-import org.apache.sling.distribution.SimpleDistributionRequest;
 import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Component;
@@ -20,10 +18,13 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+
 import javax.jcr.Session;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
 @Component(service = Servlet.class)
 @SlingServletResourceTypes(
@@ -41,6 +42,8 @@ public class ReplicateDictionaryServlet extends SlingAllMethodsServlet {
     @Reference
     private transient Replicator replicator;
 
+    private ResourceResolver resourceResolver;
+
     @Override
     protected void doPost(SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws IOException {
         String path = request.getParameter("path");
@@ -49,17 +52,15 @@ public class ReplicateDictionaryServlet extends SlingAllMethodsServlet {
             LOG.warn("Invalid parameters to replicate dictionary");
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         } else {
-            final ResourceResolver resourceResolver = request.getResourceResolver();
+            resourceResolver = request.getResourceResolver();
             Resource resource = resourceResolver.getResource(path);
 
             if (resource != null) {
-//                DistributionRequest distributionRequest = new SimpleDistributionRequest(DistributionRequestType.ADD, true, path);
-//                distributor.distribute("publish", resourceResolver, distributionRequest);
                 try {
-                    LOG.info("THe wonderfull path here is: "+path);
-                    replicator.replicate(resourceResolver.adaptTo(Session.class), ReplicationActionType.ACTIVATE, path);
+                    replicate(resource);
                 } catch (ReplicationException e) {
-                    throw new RuntimeException(e);
+                    LOG.warn("ReplicationException occurred when trying to replicate dictionary in ReplicateDictionaryServlet");
+                    return;
                 }
 
                 if (LOG.isDebugEnabled()) {
@@ -75,4 +76,16 @@ public class ReplicateDictionaryServlet extends SlingAllMethodsServlet {
             }
         }
     }
+
+    private void replicate(Resource parentResource) throws ReplicationException {
+        String path = parentResource.getPath();
+        replicator.replicate(resourceResolver.adaptTo(Session.class), ReplicationActionType.ACTIVATE, path);
+        if (parentResource.hasChildren()){
+            for(Resource childResource : parentResource.getChildren()){
+                replicate(childResource);
+            }
+        }
+    }
 }
+
+
