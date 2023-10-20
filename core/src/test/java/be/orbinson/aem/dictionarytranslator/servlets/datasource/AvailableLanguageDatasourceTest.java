@@ -42,7 +42,6 @@ class AvailableLanguageDatasourceTest {
 
     @Test
     void testSortByValue() {
-        AvailableLanguageDatasource availableLanguageDatasource = new AvailableLanguageDatasource();
         Map<String, String> unsortedMap = Map.of("b", "Beta", "a", "Alpha", "c", "Charlie");
         Map<String, String> sortedMap = AvailableLanguageDatasource.sortByValue(unsortedMap);
 
@@ -64,7 +63,6 @@ class AvailableLanguageDatasourceTest {
                 "jcr:mixinTypes", "mix:language",
                 "jcr:language", "fr"
         );
-        AvailableLanguageDatasource availableLanguageDatasource = new AvailableLanguageDatasource();
         Map<String, String> languageMap = new HashMap<>(Map.of("en", "English", "es", "Spanish", "fr", "French"));
         ResourceResolver resourceResolver = context.resourceResolver();
         String languagePath = "/content/dictionaries/i18n";
