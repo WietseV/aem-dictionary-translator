@@ -12,7 +12,10 @@ import io.wcm.testing.mock.aem.junit5.AemContextExtension;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
+
+import org.apache.sling.testing.mock.sling.servlet.MockSlingHttpServletRequest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -24,6 +27,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -38,13 +42,11 @@ import static org.mockito.Mockito.*;
 @ExtendWith({AemContextExtension.class, MockitoExtension.class})
 class ReplicateLabelServletTest {
 
-    private final AemContext context = new AemContext(ResourceResolverType.JCR_MOCK);
+    private final AemContext context = new AemContext();
 
     @NotNull ReplicateLabelServlet servlet;
 
     @NotNull CreateLabelServlet create;
-
-    DictionaryService dictionaryService;
 
     @Mock
     TranslationConfig translationConfig;
@@ -52,17 +54,11 @@ class ReplicateLabelServletTest {
     @Mock
     Replicator replicator;
 
-    @Mock
-    ResourceResolver resourceResolver;
-
-
-
     @BeforeEach
     void beforeEach() {
         translationConfig = context.registerService(TranslationConfig.class, translationConfig);
-        dictionaryService = context.registerInjectActivateService(new DictionaryServiceImpl());
+        context.registerInjectActivateService(new DictionaryServiceImpl());
         replicator = context.registerService(Replicator.class, replicator);
-        resourceResolver = context.registerService(ResourceResolver.class, resourceResolver);
         servlet = context.registerInjectActivateService(new ReplicateLabelServlet());
         create = context.registerInjectActivateService(new CreateLabelServlet());
     }
@@ -71,9 +67,7 @@ class ReplicateLabelServletTest {
     void doPostWithoutParams() throws ServletException, IOException {
         context.request().setMethod("POST");
         context.request().setParameterMap(Map.of());
-
         servlet.service(context.request(), context.response());
-
         assertEquals(HttpServletResponse.SC_BAD_REQUEST, context.response().getStatus());
     }
 
@@ -83,78 +77,85 @@ class ReplicateLabelServletTest {
         context.request().setParameterMap(Map.of(
                 "labels", "/content/dictionaries/i18n/appel"
         ));
-
         servlet.service(context.request(), context.response());
-
         assertEquals(HttpServletResponse.SC_BAD_REQUEST, context.response().getStatus());
     }
 
     @Test
-    @Disabled
     void publishExistingLabel() throws ServletException, IOException, ReplicationException {
         Resource test = context.create().resource("/content/dictionaries/i18n/en/appel");
-//        context.create().resource("/content/dictionaries/i18n/peer");
-        context.request().setMethod("POST");
-        context.request().setParameterMap(Map.of(
-                "labels", new String[]{"/content/dictionaries/i18n/en/appel"}
-        ));
 
-        //create mock iterator of query result
-//        Resource test = context.create().resource("/content/dictionaries/i18n/appel");
         List<Resource> resources = new ArrayList<>();
         resources.add(test);
         Iterator<Resource> iterator = resources.iterator();
 
-        SlingHttpServletRequest request = Mockito.spy(context.request());
-        when(servlet.getResourceResolver(request)).thenReturn(resourceResolver);
+        ResourceResolver resolver = spy(context.resourceResolver());
+        when(resolver.findResources(anyString(), anyString())).thenReturn(iterator);
 
-//        when(resourceResolver.findResources(anyString(),anyString())).thenReturn(iterator);
-        when(servlet.getResources(resourceResolver, anyString(), anyString())).thenReturn(iterator);
+        MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(resolver, context.bundleContext());
+        request.setMethod("POST");
+        request.setParameterMap(Map.of(
+                "labels", new String[]{"/content/dictionaries/i18n/en/appel"}
+        ));
 
-        servlet.service(context.request(), context.response());
-
-        // Verify that the labels were published
+        servlet.service(request, context.response());
         verify(replicator, times(1)).replicate(any(), eq(ReplicationActionType.ACTIVATE), anyString());
         assertEquals(HttpServletResponse.SC_OK, context.response().getStatus());
     }
 
     @Test
-    @Disabled
     void publishMultipleLabels() throws ServletException, IOException, ReplicationException {
-        // Creating resources
-        context.create().resource("/content/dictionaries/i18n/en/appel");
-        context.create().resource("/content/dictionaries/i18n/en/peer");
-        context.create().resource("/content/dictionaries/i18n/en/framboos");
+        Resource test = context.create().resource("/content/dictionaries/i18n/en/appel");
+        Resource test2 = context.create().resource("/content/dictionaries/i18n/en/peer");
+        Resource test3 = context.create().resource("/content/dictionaries/i18n/en/framboos");
 
-        // Setting up the request
-        context.request().setMethod("POST");
-        context.request().setParameterMap(Map.of(
-                "labels", new String[]{"/content/dictionaries/i18n/appel,/content/dictionaries/i18n/peer"}
+        List<Resource> resources = new ArrayList<>();
+        resources.add(test);
+        resources.add(test2);
+        resources.add(test3);
+        Iterator<Resource> iterator = resources.iterator();
+
+        ResourceResolver resolver = spy(context.resourceResolver());
+        when(resolver.findResources(anyString(), anyString())).thenReturn(iterator);
+
+        MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(resolver, context.bundleContext());
+        request.setMethod("POST");
+        request.setParameterMap(Map.of(
+                "labels", new String[]{"/content/dictionaries/i18n/en/appel", "/content/dictionaries/i18n/en/peer", "/content/dictionaries/i18n/en/framboos"}
         ));
 
-        // Invoking the servlet
-        servlet.service(context.request(), context.response());
-
-        // Verify that the labels were published twice
-        verify(replicator, times(2)).replicate(any(), eq(ReplicationActionType.ACTIVATE), anyString());
-
-        // Asserting the HTTP response status code
+        servlet.service(request, context.response());
+        verify(replicator, times(3)).replicate(any(), eq(ReplicationActionType.ACTIVATE), anyString());
         assertEquals(HttpServletResponse.SC_OK, context.response().getStatus());
     }
 
     @Test
     void publishNonExistingLabel() throws ServletException, IOException, ReplicationException {
         context.create().resource("/content/dictionaries/i18n/en/appel");
-        context.request().setMethod("POST");
-        context.request().setParameterMap(Map.of(
-                "labels", new String[]{"/content/dictionaries/i18n/peer"}
+
+        MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(context.resourceResolver(), context.bundleContext());
+        request.setMethod("POST");
+        request.setParameterMap(Map.of(
+                "labels", new String[]{"/content/dictionaries/i18n/en/peer"}
         ));
 
-        servlet.service(context.request(), context.response());
-
-        // Verify that the labels were published
+        servlet.service(request, context.response());
         verify(replicator, times(0)).replicate(any(), any(), anyString());
+        assertEquals(HttpServletResponse.SC_BAD_REQUEST, context.response().getStatus());
+    }
 
+    @Test
+    void publishLabelWithWrongPath() throws ServletException, IOException, ReplicationException {
+        context.create().resource("/content/dictionaries/i18n/en/appel");
+
+        MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(context.resourceResolver(), context.bundleContext());
+        request.setMethod("POST");
+        request.setParameterMap(Map.of(
+                "labels", new String[]{"peer"}
+        ));
+
+        servlet.service(request, context.response());
+        verify(replicator, times(0)).replicate(any(), any(), anyString());
         assertEquals(HttpServletResponse.SC_BAD_REQUEST, context.response().getStatus());
     }
 
