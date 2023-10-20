@@ -39,6 +39,7 @@ public class ReplicateLabelServlet extends SlingAllMethodsServlet {
     @Override
     protected void doPost(SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws IOException {
         String labels = request.getParameter("labels");
+        ResourceResolver resolver = request.getResourceResolver();
 
         if (StringUtils.isEmpty(labels)) {
             LOG.warn("Labels parameters are required");
@@ -52,36 +53,28 @@ public class ReplicateLabelServlet extends SlingAllMethodsServlet {
                 if (lastIndexOfBackslash != -1) {
                     parentPath = label.substring(0, lastIndexOfBackslash);
                     label = label.substring(lastIndexOfBackslash + 1);
-                }
-                ResourceResolver resourceResolver = getResourceResolver(request);
-                Iterator<Resource> iterator = getResources(resourceResolver, parentPath, label);
-                iterator.forEachRemaining(
-                        resource -> {
-                            try {
-                                replicator.replicate(resourceResolver.adaptTo(Session.class), ReplicationActionType.ACTIVATE, resource.getPath());
-                                LOG.debug("Published label on path '{}'", resource.getPath());
-                            } catch (ReplicationException e) {
-                                LOG.warn("ReplicationException occurred when trying to replicate servlet in ReplicateDictionaryServlet");
+
+
+                    Iterator<Resource> iterator = resolver.findResources("/jcr:root" + parentPath + "//element(*, mix:language)/" + label, "xpath");
+                    if(!iterator.hasNext()){
+                        LOG.warn("Unable to publish label '{}'", label);
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                    }
+                    iterator.forEachRemaining(
+                            resource -> {
+                                try {
+                                    replicator.replicate(resolver.adaptTo(Session.class), ReplicationActionType.ACTIVATE, resource.getPath());
+                                    LOG.debug("Published label on path '{}'", resource.getPath());
+                                } catch (ReplicationException e) {
+                                    LOG.warn("ReplicationException occurred when trying to replicate servlet in ReplicateDictionaryServlet");
+                                }
                             }
-                        }
-                );
-                LOG.warn("Unable to get label '{}'", labels);
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                    );
+                } else {
+                    LOG.warn("Wrong label path '{}'", label);
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                }
             }
         }
     }
-
-    // Wrapper method to mock resourceResolver
-    @NotNull
-    ResourceResolver getResourceResolver(SlingHttpServletRequest request) {
-        return request.getResourceResolver();
-    }
-
-    // Wrapper method to mock findResources
-    @NotNull
-    Iterator<Resource> getResources(ResourceResolver resolver, String parentPath, String label) {
-        String query = "/jcr:root" + parentPath + "//element(*, mix:language)/" + label;
-        return resolver.findResources(query, "xpath");
-    }
-
 }
