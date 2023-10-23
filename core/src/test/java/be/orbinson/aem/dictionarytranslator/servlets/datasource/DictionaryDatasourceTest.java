@@ -45,7 +45,6 @@ class DictionaryDatasourceTest {
     TranslationConfig translationConfig;
 
     private final AemContext context = new AemContext();
-
     private DictionaryDatasource dictionaryDatasource;
     private DictionaryServiceImpl dictionaryService;
 
