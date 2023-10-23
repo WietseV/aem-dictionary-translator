@@ -63,7 +63,7 @@ class ReplicateDictionaryServletTest {
         translationConfig = context.registerService(TranslationConfig.class, translationConfig);
         context.registerInjectActivateService(new DictionaryServiceImpl());
         replicator = context.registerService(Replicator.class, replicator);
-        distributor = context.registerService(Distributor.class,distributor)
+        distributor = context.registerService(Distributor.class,distributor);
         servlet = context.registerInjectActivateService(new ReplicateDictionaryServlet());
         create = context.registerInjectActivateService(new CreateLabelServlet());
     }
