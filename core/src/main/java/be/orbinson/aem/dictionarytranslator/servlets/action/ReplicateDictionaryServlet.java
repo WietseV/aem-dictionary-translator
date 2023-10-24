@@ -77,7 +77,7 @@ public class ReplicateDictionaryServlet extends SlingAllMethodsServlet {
         }
     }
 
-    private void replicate(Resource parentResource) throws ReplicationException {
+     private void replicate(Resource parentResource) throws ReplicationException {
         String path = parentResource.getPath();
         replicator.replicate(resourceResolver.adaptTo(Session.class), ReplicationActionType.ACTIVATE, path);
         if (parentResource.hasChildren()){
