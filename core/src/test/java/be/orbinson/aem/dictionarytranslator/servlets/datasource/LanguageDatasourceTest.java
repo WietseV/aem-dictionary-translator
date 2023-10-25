@@ -29,10 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -48,6 +45,7 @@ class LanguageDatasourceTest {
     TranslationConfig translationConfig;
 
     private DictionaryDatasource dictionaryDatasource;
+
     private DictionaryServiceImpl dictionaryService;
 
     @BeforeEach
@@ -59,24 +57,36 @@ class LanguageDatasourceTest {
 
     @Test
     void testDoGet() {
-        Resource test = context.create().resource("/content/dictionaries/i18n/en/appel");
         ResourceResolver resolver = spy(context.resourceResolver());
+        context.create().resource("/content/dictionaries/site-a/i18n", Map.of("jcr:primaryType", "sling:Folder"));
+        context.create().resource("/content/dictionaries/site-a/i18n/en", Map.of("jcr:language", "en", "en", "apple"));
+        Resource test = context.create().resource("/content/dictionaries/site-a/i18n/en/test", Map.of("sling:resourceType", "granite/ui/components/coral/foundation/container"));
+        context.create().resource("/content/dictionaries/site-a/i18n/fr", Map.of("jcr:language", "fr", "fr", "pomme"));
+        context.create().resource("/content/dictionaries/site-b/i18n/de", Map.of("jcr:language", "de", "de", "apfel"));
+
 
         MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(resolver, context.bundleContext());
         request.setMethod("POST");
         request.setParameterMap(Map.of(
                 "labels", new String[]{"/content/dictionaries/i18n/en/appel"}
         ));
+
         request.setResource(test);
 
         MockRequestPathInfo requestPathInfo = (MockRequestPathInfo)request.getRequestPathInfo();
-        requestPathInfo.setSuffix("lekker");
+        requestPathInfo.setSuffix("/content/dictionaries/site-a/i18n");
 
         SlingHttpServletRequest slingHttpServletRequest= spy(request);
 
         when(slingHttpServletRequest.getRequestPathInfo()).thenReturn(requestPathInfo);
 
-        languageDatasource.doGet(request, context.response());
+        Map<String, String> temp = new HashMap<>();
+        temp.put("en","apple");
+        temp.put("fr","pomme");
+        temp.put("de","apfel");
 
+        doReturn(temp).when(spy(dictionaryService)).getLanguagesForPath(any(), anyString());
+
+        languageDatasource.doGet(request, context.response());
     }
 }
