@@ -39,7 +39,7 @@ public class LanguageDatasource extends SlingSafeMethodsServlet {
         if ("granite/ui/components/coral/foundation/container".equals(resourceType)) {
             createTextFieldResource(resourceResolver, resourceList, language, value);
         } else {
-            createSelectResource(resourceResolver, resourceList, language, value);
+            createSelectResource(resourceResolver, resourceList, "en", language, value);
         }
     }
 
@@ -48,7 +48,7 @@ public class LanguageDatasource extends SlingSafeMethodsServlet {
         resourceList.add(new ValueMapResource(resourceResolver, "", "granite/ui/components/coral/foundation/form/textfield", valueMap));
     }
 
-    private static void createSelectResource(ResourceResolver resourceResolver, List<Resource> resourceList, String language, String value) {
+    private static void createSelectResource(ResourceResolver resourceResolver, List<Resource> resourceList, String en, String language, String value) {
         ValueMap valueMap = new ValueMapDecorator(Map.of("value", language, "text", value + " (" + language + ")"));
         resourceList.add(new ValueMapResource(resourceResolver, "", "", valueMap));
     }
@@ -71,7 +71,7 @@ public class LanguageDatasource extends SlingSafeMethodsServlet {
     }
 
     @NotNull
-    private List<Resource> getResources(ResourceResolver resourceResolver, String dictionaryPath, String resourceType) {
+    List<Resource> getResources(ResourceResolver resourceResolver, String dictionaryPath, String resourceType) {
         List<Resource> resourceList = new ArrayList<>();
 
         if (dictionaryService != null) {
