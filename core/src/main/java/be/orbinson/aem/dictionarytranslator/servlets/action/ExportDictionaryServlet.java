@@ -43,8 +43,8 @@ public class ExportDictionaryServlet extends SlingAllMethodsServlet {
                     csvHeader.append(child.getName());
                     languageResources.add(child);
                 }
-                writer.println(csvHeader.toString());
-                LOG.info("CSV header: " + csvHeader.toString());
+                writer.println(csvHeader);
+                LOG.info("CSV header: " + csvHeader);
 
                 if (!languageResources.isEmpty()) {
                     Resource firstLanguageResource = languageResources.get(0);
@@ -58,8 +58,8 @@ public class ExportDictionaryServlet extends SlingAllMethodsServlet {
                             String translation = correspondingLabelResource.getValueMap().get("sling:message", String.class);
                             csvRow.append(translation);
                         }
-                        writer.println(csvRow.toString());
-                        LOG.info("CSV row: " + csvRow.toString());
+                        writer.println(csvRow);
+                        LOG.info("CSV row: " + csvRow);
                     }
                 }
             }
