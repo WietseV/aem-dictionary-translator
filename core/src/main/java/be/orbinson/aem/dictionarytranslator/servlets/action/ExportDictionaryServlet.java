@@ -1,4 +1,5 @@
 package be.orbinson.aem.dictionarytranslator.servlets.action;
+
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
@@ -8,12 +9,14 @@ import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import javax.servlet.Servlet;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import javax.servlet.Servlet;
 
 @Component(service = Servlet.class)
 @SlingServletResourceTypes(
@@ -28,7 +31,7 @@ public class ExportDictionaryServlet extends SlingAllMethodsServlet {
         String dictionary = request.getParameter("dictionary");
 
         response.setContentType("text/csv");
-        response.setHeader("Content-disposition", "attachment; filename=\"dictionary_"+ dictionary +".csv");
+        response.setHeader("Content-disposition", "attachment; filename=\"dictionary_" + dictionary + ".csv");
 
         try (PrintWriter writer = response.getWriter()) {
             ResourceResolver resolver = request.getResourceResolver();
@@ -39,7 +42,7 @@ public class ExportDictionaryServlet extends SlingAllMethodsServlet {
                 Iterator<Resource> children = resource.listChildren();
                 while (children.hasNext()) {
                     Resource child = children.next();
-                    csvHeader.append(",");
+                    csvHeader.append(";");
                     csvHeader.append(child.getName());
                     languageResources.add(child);
                 }
@@ -54,7 +57,7 @@ public class ExportDictionaryServlet extends SlingAllMethodsServlet {
                         StringBuilder csvRow = new StringBuilder(labelResource.getValueMap().get("sling:key", String.class));
                         for (Resource languageResource : languageResources) {
                             Resource correspondingLabelResource = languageResource.getChild(labelResource.getName());
-                            csvRow.append(",");
+                            csvRow.append(";");
                             String translation = correspondingLabelResource.getValueMap().get("sling:message", String.class);
                             csvRow.append(translation);
                         }

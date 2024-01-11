@@ -1,5 +1,8 @@
 package be.orbinson.aem.dictionarytranslator.servlets.action;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.request.RequestParameter;
@@ -8,22 +11,21 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
 import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
+import org.apache.tika.io.IOUtils;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.csv.CSVParser;
-
-import javax.servlet.Servlet;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.servlet.Servlet;
 
 @Component(service = Servlet.class)
 @SlingServletResourceTypes(
@@ -47,13 +49,20 @@ public class ImportDictionaryServlet extends SlingAllMethodsServlet {
 
             ResourceResolver resourceResolver = request.getResourceResolver();
 
-            try (InputStreamReader reader = new InputStreamReader(csvContent);
-                 CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
-
+            try (InputStreamReader reader = new InputStreamReader(csvContent)) {
+                String result = IOUtils.toString(csvContent, String.valueOf(StandardCharsets.UTF_8));
+                csvContent.reset();
+                CSVFormat format = null;
+                if (result.contains(";")) {
+                    format = CSVFormat.newFormat(';').withFirstRecordAsHeader();
+                } else {
+                    format = CSVFormat.DEFAULT.withFirstRecordAsHeader();
+                }
+                CSVParser csvParser = new CSVParser(reader, format);
                 Map<String, Integer> headers = csvParser.getHeaderMap();
 
                 if (!headers.containsKey("Labelname") || headers.get("Labelname") != 0) {
-                    String error = "Invalid CSV file. The first column must be 'Labelname'";
+                    String error = "Invalid CSV file. The first column must be 'Labelname'. The Delimiter should be ',' or ';'.";
                     LOG.error(error);
                     response.setStatus(400, error);
                     return;
