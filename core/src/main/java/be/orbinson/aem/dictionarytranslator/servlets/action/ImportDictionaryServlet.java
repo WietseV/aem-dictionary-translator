@@ -23,6 +23,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -123,17 +124,17 @@ public class ImportDictionaryServlet extends SlingAllMethodsServlet {
 
     private void initializeLanguageData(Map<String, Integer> headers, List<String> languages, List<List<String>> translations, Iterator<Resource> knownLanguages, SlingHttpServletResponse response) {
         for (String language : headers.keySet()) {
-            knownLanguages.forEachRemaining(knownLanguage -> {
-                if (knownLanguage.getName().equals(language)){
+            while (knownLanguages.hasNext()){
+                if (knownLanguages.next().getName().equals(language)){
                     languages.add(language);
                     translations.add(new ArrayList<>());
-                }
-                else {
+                    break;
+                } else {
                     String error = "Incorrect CSV file, please only add languages that exist in the dictionary";
                     LOG.warn(error);
                     response.setStatus(400, error);
                 }
-            });
+            }
         }
     }
 
@@ -162,7 +163,7 @@ public class ImportDictionaryServlet extends SlingAllMethodsServlet {
         }
         Resource labelResource = resourceResolver.getResource(path + "/" + language + "/" + label);
         if (labelResource == null) {
-             createLabelResource(resourceResolver, languageResource, label);
+             createLabelResource(resourceResolver, languageResource, label, translation);
         } else {
             updateLabelResourceProperties(labelResource, label, translation);
         }
@@ -178,8 +179,14 @@ public class ImportDictionaryServlet extends SlingAllMethodsServlet {
         ));
     }
 
-    private Resource createLabelResource(ResourceResolver resourceResolver, Resource languageResource, String newNodeName) throws PersistenceException {
-        return resourceResolver.create(languageResource, newNodeName, Map.of(JCR_PRIMARYTYPE, NT_UNSTRUCTURED));
+    private Resource createLabelResource(ResourceResolver resourceResolver, Resource languageResource, String newNodeName, String translation) throws PersistenceException {
+        Map<String, Object> properties = new HashMap<>();
+        properties.put(JCR_PRIMARYTYPE, SLING_MESSAGEENTRY);
+        properties.put(SLING_KEY, newNodeName);
+        if (!translation.isBlank()) {
+            properties.put(SLING_MESSAGE, translation);
+        }
+        return resourceResolver.create(languageResource, newNodeName, properties);
     }
 
     private void updateLabelResourceProperties(Resource labelResource, String label, String translation) {
