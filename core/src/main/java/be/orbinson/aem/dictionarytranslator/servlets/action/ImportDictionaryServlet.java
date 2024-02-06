@@ -23,6 +23,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -85,7 +86,9 @@ public class ImportDictionaryServlet extends SlingAllMethodsServlet {
             validateCsvHeaders(response, headers);
 
             headers.remove(KEY_HEADER);
-            initializeLanguageData(headers, languages, translations);
+            Resource dictionary = resourceResolver.getResource(path);
+            Iterator<Resource> knownLanguages = dictionary.listChildren();
+            initializeLanguageData(headers, languages, translations, knownLanguages, response);
 
             for (CSVRecord record : csvParser) {
                 processCsvRecord(path, languages, resourceResolver, keys, translations, record);
@@ -118,10 +121,19 @@ public class ImportDictionaryServlet extends SlingAllMethodsServlet {
         }
     }
 
-    private void initializeLanguageData(Map<String, Integer> headers, List<String> languages, List<List<String>> translations) {
+    private void initializeLanguageData(Map<String, Integer> headers, List<String> languages, List<List<String>> translations, Iterator<Resource> knownLanguages, SlingHttpServletResponse response) {
         for (String language : headers.keySet()) {
-            languages.add(language);
-            translations.add(new ArrayList<>());
+            knownLanguages.forEachRemaining(knownLanguage -> {
+                if (knownLanguage.getName().equals(language)){
+                    languages.add(language);
+                    translations.add(new ArrayList<>());
+                }
+                else {
+                    String error = "Incorrect CSV file, please only add languages that exist in the dictionary";
+                    LOG.warn(error);
+                    response.setStatus(400, error);
+                }
+            });
         }
     }
 
@@ -148,11 +160,12 @@ public class ImportDictionaryServlet extends SlingAllMethodsServlet {
         if (languageResource == null) {
             languageResource = createLanguageResource(resourceResolver, path, language);
         }
-
-        String newNodeName = label;
-        Resource labelResource = createLabelResource(resourceResolver, languageResource, newNodeName);
-
-        updateLabelResourceProperties(labelResource, label, translation);
+        Resource labelResource = resourceResolver.getResource(path + "/" + language + "/" + label);
+        if (labelResource == null) {
+             createLabelResource(resourceResolver, languageResource, label);
+        } else {
+            updateLabelResourceProperties(labelResource, label, translation);
+        }
     }
 
     private Resource createLanguageResource(ResourceResolver resourceResolver, String path, String language) throws PersistenceException {
